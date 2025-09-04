@@ -1,4 +1,5 @@
 import { getUser } from '@/lib/supabase/server';
+import { prisma } from '@/lib/prisma';
 import { openai } from '@ai-sdk/openai';
 import { convertToModelMessages, streamText, tool } from 'ai';
 import { z } from 'zod';
@@ -54,22 +55,50 @@ REGLAS:
         description: 'Crear y guardar el perfil profesional completo de la persona',
         inputSchema: createProfileSchema,
         execute: async (profileData) => {
-          // Combinar información de Google con datos recopilados
-          const completeProfile = {
-            name: user?.user_metadata?.full_name || profileData.name,
-            email: user?.email || profileData.email,
-            avatar: user?.user_metadata?.avatar_url || profileData.avatar,
-            title: profileData.title,
-            company: profileData.company,
-            experience: profileData.experience,
-            interests: profileData.interests,
-            extra: profileData.extra,
-          };
+          try {
+            // Combinar información de Google con datos recopilados
+            const completeProfile = {
+              name: user?.user_metadata?.full_name || profileData.name,
+              email: user?.email || profileData.email,
+              avatar: user?.user_metadata?.avatar_url || profileData.avatar,
+              title: profileData.title,
+              company: profileData.company,
+              experience: profileData.experience,
+              interests: profileData.interests,
+              extra: profileData.extra,
+            };
 
-          // Aquí guardarías en la base de datos
-          console.log('Perfil completo creado:', completeProfile);
+            // Guardar en la base de datos usando Prisma
+            const savedProfile = await prisma.profile.upsert({
+              where: { email: completeProfile.email },
+              update: {
+                name: completeProfile.name,
+                avatar: completeProfile.avatar,
+                title: completeProfile.title,
+                company: completeProfile.company,
+                experience: completeProfile.experience,
+                interests: completeProfile.interests,
+                extra: completeProfile.extra,
+              },
+              create: {
+                name: completeProfile.name,
+                email: completeProfile.email,
+                avatar: completeProfile.avatar,
+                title: completeProfile.title,
+                company: completeProfile.company,
+                experience: completeProfile.experience,
+                interests: completeProfile.interests,
+                extra: completeProfile.extra,
+              },
+            });
 
-          return completeProfile;
+            console.log('Perfil guardado en la base de datos:', savedProfile);
+
+            return completeProfile;
+          } catch (error) {
+            console.error('Error al guardar el perfil:', error);
+            throw new Error('No se pudo guardar el perfil en la base de datos');
+          }
         },
       }),
     },

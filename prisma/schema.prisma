@@ -14,45 +14,17 @@ datasource db {
 }
 
 model Profile {
-  id        String   @id @default(cuid())
-  full_name String
-  email     String   @unique
-  cv_id     String?  @unique
-  
-  cv                    CV?
-  looperRecommendations LooperRecommendation[]
+  id          String   @id @default(cuid())
+  name        String
+  email       String   @unique
+  avatar      String?
+  title       String
+  company     String
+  experience  String
+  interests   String[] // Array de strings para los intereses
+  extra       String?
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
 
   @@map("profiles")
-}
-
-model CV {
-  id         String   @id @default(cuid())
-  file_path  String
-  
-  profile Profile? @relation(fields: [id], references: [cv_id])
-
-  @@map("cv")
-}
-
-model Looper {
-  id          String   @id @default(cuid())
-  full_name   String
-  email       String   @unique
-  description String
-  
-  looperRecommendations LooperRecommendation[] @relation("LooperRecommendations")
-
-  @@map("loopers")
-}
-
-model LooperRecommendation {
-  id           String   @id @default(cuid())
-  profile_id   String
-  looper_ids   String[]
-  text         String
-  
-  profile Profile @relation(fields: [profile_id], references: [id], onDelete: Cascade)
-  loopers Looper[] @relation("LooperRecommendations")
-
-  @@map("looper_recommendations")
 }
