@@ -19,8 +19,6 @@ export async function POST(req: Request) {
   const user = await getUser();
   const { messages } = await req.json();
 
-  console.log(user);
-
   const result = await streamText({
     model: openai('gpt-4o-mini'),
     messages: convertToModelMessages(messages),
