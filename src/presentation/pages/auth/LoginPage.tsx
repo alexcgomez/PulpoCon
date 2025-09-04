@@ -3,11 +3,11 @@ import { GoogleLoginButton } from "@/presentation/components/auth/GoogleLoginBut
 
 export function LoginPage() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen flex items-center justify-center bg-background py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
         <div className="text-center">
-          <h1 className="text-3xl font-bold text-gray-900">PulpoCon</h1>
-          <p className="mt-2 text-sm text-gray-600">
+          <h1 className="text-3xl font-bold text-foreground">PulpoCon</h1>
+          <p className="mt-2 text-sm text-muted-foreground">
             Recomendador de networking para conferencias
           </p>
         </div>
@@ -21,7 +21,7 @@ export function LoginPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <GoogleLoginButton />
-            <div className="text-center text-sm text-gray-500">
+            <div className="text-center text-sm text-muted-foreground">
               Al continuar, aceptas nuestros términos de servicio y política de privacidad
             </div>
           </CardContent>
