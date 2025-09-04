@@ -5,15 +5,13 @@ import { z } from 'zod';
 
 const createProfileSchema = z.object({
   name: z.string().describe('Nombre completo de la persona'),
-  title: z.string().describe('Título profesional o cargo actual'),
+  email: z.string().email().describe('Email de contacto'),
+  avatar: z.string().url().describe('URL de la foto de perfil'),
+  title: z.string().describe('Puesto o cargo actual'),
   company: z.string().describe('Empresa donde trabaja actualmente'),
   experience: z.string().describe('Descripción de la experiencia profesional'),
-  skills: z.array(z.string()).describe('Lista de habilidades técnicas y profesionales'),
   interests: z.array(z.string()).describe('Intereses profesionales y áreas de interés'),
-  projects: z.array(z.string()).describe('Proyectos destacados o trabajos relevantes'),
-  goals: z.string().describe('Objetivos de networking y crecimiento profesional'),
-  location: z.string().describe('Ubicación geográfica'),
-  email: z.string().email().describe('Email de contacto profesional'),
+  extra: z.string().describe('Información adicional que quiera mencionar (hobbies, actividades, etc.)'),
 });
 
 export async function POST(req: Request) {
@@ -25,40 +23,53 @@ export async function POST(req: Request) {
   const result = await streamText({
     model: openai('gpt-4o-mini'),
     messages: convertToModelMessages(messages),
-    system: `Eres un asistente especializado en crear perfiles profesionales para networking en conferencias. Tu objetivo es recopilar información completa sobre el perfil profesional de la persona para crear un perfil atractivo y útil para networking.
+    system: `Eres un asistente especializado en crear perfiles profesionales para networking en conferencias. Ya tienes la información básica del usuario de Google:
+- Nombre: ${user?.user_metadata?.full_name || 'Usuario'}
+- Email: ${user?.email || 'No disponible'}
+- Foto: ${user?.user_metadata?.avatar_url || 'No disponible'}
+
+Tu objetivo es recopilar información adicional para completar su perfil profesional.
 
 PROCESO:
-1. Saluda cordialmente, el usuario es ${user?.user_metadata?.full_name.split(' ')[0]} y explica que vas a hacer algunas preguntas para crear su perfil profesional
+1. Saluda cordialmente usando su nombre (${user?.user_metadata?.full_name?.split(' ')[0] || 'Usuario'}) y explica que vas a hacer algunas preguntas rápidas para completar su perfil profesional
 2. Haz preguntas específicas sobre:
-   - título profesional
-   - Empresa actual y experiencia
-   - Habilidades técnicas y profesionales
-   - Intereses y áreas de especialización
-   - Proyectos destacados
-   - Objetivos de networking
-   - Ubicación y contacto
+   - Puesto o cargo actual
+   - Empresa donde trabaja
+   - Experiencia profesional (breve resumen)
+   - Intereses profesionales y áreas de especialización
+   - Algo extra que quiera mencionar (hobbies, actividades, etc.)
 
 3. Haz UNA pregunta a la vez y espera la respuesta
 4. Sé conversacional y amigable
-5. Cuando tengas suficiente información (al menos nombre, título, empresa, experiencia, skills, intereses, objetivos), llama a la tool createProfile
+5. Cuando tengas suficiente información (puesto, empresa, experiencia, intereses, extra), llama a la tool createProfile
 
 REGLAS:
-- Haz máximo 8-10 preguntas
+- Haz máximo 5-6 preguntas (es un proceso rápido)
 - Si la persona no quiere responder algo, respeta su decisión
 - Mantén un tono profesional pero cercano
 - Responde siempre en español
-- Cuando llames a createProfile, incluye un mensaje de felicitación y explica que su perfil ha sido creado`,
-
+`,
     tools: {
       createProfile: tool({
         description: 'Crear y guardar el perfil profesional completo de la persona',
         inputSchema: createProfileSchema,
-        execute: async (profile) => {
-          // Aquí guardarías en la base de datos
-          // Por ahora solo retornamos el perfil
-          console.log('Perfil creado:', profile);
+        execute: async (profileData) => {
+          // Combinar información de Google con datos recopilados
+          const completeProfile = {
+            name: user?.user_metadata?.full_name || profileData.name,
+            email: user?.email || profileData.email,
+            avatar: user?.user_metadata?.avatar_url || profileData.avatar,
+            title: profileData.title,
+            company: profileData.company,
+            experience: profileData.experience,
+            interests: profileData.interests,
+            extra: profileData.extra,
+          };
 
-          return profile;
+          // Aquí guardarías en la base de datos
+          console.log('Perfil completo creado:', completeProfile);
+
+          return completeProfile;
         },
       }),
     },
