@@ -2,22 +2,38 @@
 
 import { useChat } from '@ai-sdk/react';
 import { useState } from 'react';
-import { Card, CardContent } from '@/presentation/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/presentation/components/ui/card';
 import { Button } from '@/presentation/components/ui/button';
 import Link from 'next/link';
-import { Profile, ProfileBadge } from '@/presentation/components/ProfileBadge';
+import { Profile } from '@/presentation/components/ProfileBadge';
+import { ProfileToolOutput } from '@/presentation/components/ProfileToolOutput';
+import {
+  Conversation,
+  ConversationContent,
+  ConversationScrollButton,
+} from '@/components/ai-elements/conversation';
+import {
+  Message,
+  MessageContent,
+  MessageAvatar,
+} from '@/components/ai-elements/message';
+import { Response } from '@/components/ai-elements/response';
+import {
+  PromptInput,
+  PromptInputTextarea,
+  PromptInputSubmit,
+  PromptInputToolbar,
+} from '@/components/ai-elements/prompt-input';
+import {
+  Tool,
+  ToolHeader,
+  ToolContent,
+  ToolOutput,
+} from '@/components/ai-elements/tool';
 
 export default function Chat() {
-  const [input, setInput] = useState('');
   const { messages, sendMessage, status, error, regenerate } = useChat();
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (input.trim()) {
-      sendMessage({ text: input });
-      setInput('');
-    }
-  };
+  const [input, setInput] = useState('');
 
   return (
     <div className="min-h-screen bg-background">
@@ -39,81 +55,71 @@ export default function Chat() {
             </Link>
           </div>
 
-          <div className="space-y-4 mb-6 max-h-96 overflow-y-auto">
-            {messages.map(message => (
-              <div key={message.id}>
-                {message.role === 'assistant' && message.parts.some(part => part.type === 'tool-createProfile') ? (
-                  <Card className="mr-auto max-w-[80%]">
-                    <CardContent className="p-4">
-                      <div className="font-semibold text-sm mb-2">Asistente IA</div>
-                      <div className="whitespace-pre-wrap">
-                        {message.parts.map((part, i) => {
-                          switch (part.type) {
-                            case 'text':
-                              return (
-                                <div key={`${message.id}-${i}`} className="text-sm mb-4">
-                                  {part.text}
-                                </div>
-                              );
-                            case 'tool-createProfile':
-                              if (part.state === 'output-available') {
-                                return (
-                                  <div key={`${message.id}-profile`} className="mt-4">
-                                    <ProfileBadge profile={part.output as Profile} />
-                                  </div>
-                                );
-                              }
-                              return null;
-                            default:
-                              return null;
-                          }
-                        })}
-                      </div>
-                    </CardContent>
-                  </Card>
-                ) : (
-                  <Card className={`${
-                    message.role === 'user' 
-                      ? 'ml-auto max-w-[80%] bg-primary text-primary-foreground' 
-                      : 'mr-auto max-w-[80%]'
-                  }`}>
-                    <CardContent className="p-4">
-                      <div className="font-semibold text-sm mb-2">
-                        {message.role === 'user' ? 'Tú' : 'Asistente IA'}
-                      </div>
-                      <div className="whitespace-pre-wrap">
-                        {message.parts.map((part, i) => {
-                          switch (part.type) {
-                            case 'text':
-                              return (
-                                <div key={`${message.id}-${i}`} className="text-sm">
-                                  {part.text}
-                                </div>
-                              );
-                            default:
-                              return null;
-                          }
-                        })}
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
-              </div>
-            ))}
+          <div className="h-[600px] border rounded-lg flex flex-col">
+            <Conversation className="flex-1 min-h-0">
+              <ConversationContent>
+                {messages.map((message, index) => (
+                  <Message key={index} from={message.role}>
+                    <MessageAvatar
+                      src={
+                        message.role === 'user'
+                          ? '/api/placeholder/32/32'
+                          : '/api/placeholder/32/32'
+                      }
+                      name={message.role === 'user' ? 'Tú' : 'IA'}
+                    />
+                    <MessageContent>
+                      {message.parts.map((part, partIndex) => {
+                        switch (part.type) {
+                          case 'text':
+                            return (
+                              <Response key={`${index}-${partIndex}`}>
+                                {part.text}
+                              </Response>
+                            );
+                          case 'tool-createProfile':
+                            return (
+                              <Tool key={`${index}-tool-${partIndex}`} defaultOpen>
+                                <ToolHeader
+                                  type="tool-createProfile"
+                                  state="output-available"
+                                />
+                                <ToolContent>
+                                  <ToolOutput
+                                    output={
+                                      <ProfileToolOutput
+                                        profile={part.output as Profile}
+                                      />
+                                    }
+                                    errorText=""
+                                  />
+                                </ToolContent>
+                              </Tool>
+                            );
+                          default:
+                            return null;
+                        }
+                      })}
+                    </MessageContent>
+                  </Message>
+                ))}
+              </ConversationContent>
+              <ConversationScrollButton />
+            </Conversation>
           </div>
 
           {error && (
-            <Card className="mb-6 border-destructive">
-              <CardContent className="p-4">
-                <div className="text-destructive font-semibold mb-2">
-                  Error
-                </div>
+            <Card className="mt-4 border-destructive">
+              <CardHeader>
+                <CardTitle className="text-destructive">Error</CardTitle>
+              </CardHeader>
+              <CardContent>
                 <div className="text-sm text-muted-foreground mb-3">
                   {error.message}
                 </div>
-                <Button 
-                  onClick={() => regenerate()} 
-                  variant="outline" 
+                <Button
+                  onClick={() => regenerate()}
+                  variant="outline"
                   size="sm"
                 >
                   Reintentar
@@ -122,26 +128,25 @@ export default function Chat() {
             </Card>
           )}
 
-          <Card className="sticky bottom-4">
-            <CardContent className="p-4">
-              <form onSubmit={handleSubmit} className="flex gap-2">
-                <input
-                  className="flex-1 p-3 border border-input rounded-md bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
-                  value={input}
-                  placeholder="Responde a la pregunta..."
-                  onChange={e => setInput(e.target.value)}
-                  disabled={status !== 'ready'}
-                />
-                <Button 
-                  type="submit" 
-                  disabled={status !== 'ready' || !input.trim()}
-                  className="px-6"
-                >
-                  {status === 'streaming' ? 'Enviando...' : 'Enviar'}
-                </Button>
-              </form>
-            </CardContent>
-          </Card>
+          <div className="mt-4">
+            <PromptInput onSubmit={(e) => {
+              e.preventDefault();
+              if (input.trim()) {
+                sendMessage({ text: input });
+                setInput('');
+              }
+            }}>
+              <PromptInputTextarea
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                placeholder="Responde a la pregunta..."
+                disabled={status !== 'ready'}
+              />
+              <PromptInputToolbar>
+                <PromptInputSubmit status={status} />
+              </PromptInputToolbar>
+            </PromptInput>
+          </div>
         </div>
       </div>
     </div>

@@ -19,6 +19,19 @@ export async function POST(req: Request) {
   const user = await getUser();
   const { messages } = await req.json();
 
+  // Si no hay mensajes, enviar mensaje de bienvenida
+  if (messages.length === 0) {
+    const welcomeMessage = `¡Hola ${user?.user_metadata?.full_name?.split(' ')[0] || 'Usuario'}! Soy tu asistente de IA para crear tu perfil profesional. Te haré algunas preguntas rápidas para completar tu perfil y poder darte recomendaciones de networking personalizadas.
+
+¿Cuál es tu puesto o cargo actual?`;
+
+    return new Response(welcomeMessage, {
+      headers: {
+        'Content-Type': 'text/plain',
+      },
+    });
+  }
+
   const result = await streamText({
     model: openai('gpt-4o-mini'),
     messages: convertToModelMessages(messages),
